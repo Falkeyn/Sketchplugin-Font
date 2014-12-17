@@ -1,0 +1,87 @@
+// Font Replace (cmd shift f)
+
+
+var fontNames = new Array();
+//fontNames.push("Arial");
+
+function alert(msg, title) {
+	title = title || "alert";
+	var app = [NSApplication sharedApplication];
+	[app displayDialog:msg withTitle:title];
+}
+
+function check_layers(layers, fromfont, newfont) {
+	var loop = [layers objectEnumerator]
+	var res = 0;
+
+	while (layer = [loop nextObject]) {
+		//log("Test layer "+[layer name])
+		if([layer className] == "MSTextLayer") {
+			//log("Text layer found: "+[layer name] + "(font "+[layer fontPostscriptName]+")")
+
+			if (!newfont) {
+				push_font([layer fontPostscriptName])
+
+			} else if ([layer fontPostscriptName] == fromfont) {
+				//log("    Change font to "+newfont)
+				[layer setFontPostscriptName:newfont]
+				res+=1
+
+			}
+		}
+	}
+	return res
+}
+
+function get_index(data, value) {
+	var res = -1;
+	for (var i = 0; i < data.length; i++) {
+		if (data[i] == value) { res = i }
+	}
+	return res;
+}
+
+function push_font(name) {
+	//log("push_font "+name)
+	if (get_index(fontNames, name)<0) {
+		fontNames.push(name);
+		//log("  font added")
+	}
+}
+
+
+var page = [doc currentPage],
+    layers = [page children]
+
+check_layers(layers)
+
+log("Page scaned, lets ask...");
+
+var fromList = [[NSComboBox alloc] initWithFrame:NSMakeRect(0,0,150,25)]
+[fromList addItemsWithObjectValues:fontNames]
+[fromList selectItemAtIndex:0]
+
+var toList = [[NSComboBox alloc] initWithFrame:NSMakeRect(160,0,150,25)]
+[toList addItemsWithObjectValues:fontNames]
+[toList selectItemAtIndex:0]
+
+var dialogView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 350, 30)];
+[dialogView addSubview:fromList]
+[dialogView addSubview:toList]
+
+var askDialog = [[NSAlert alloc] init]
+[askDialog setMessageText:"Поиск и замена шрифтов"]
+[askDialog setInformativeText:"Текущий шрифт → Новый шрифт"]
+[askDialog addButtonWithTitle:'Заменить']
+[askDialog addButtonWithTitle:'Отменить']
+[askDialog setAccessoryView:dialogView]
+
+var responseCode = [askDialog runModal]
+
+if (responseCode == 1000) {
+	log("Replacing font " + [fromList stringValue] + " → " + [toList stringValue])
+
+	var counts = check_layers(layers, [fromList stringValue], [toList stringValue])
+	alert("Выполнено замен — "+counts, "Замена выполнена");
+}
+
